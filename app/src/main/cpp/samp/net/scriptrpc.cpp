@@ -686,33 +686,40 @@ void ScrSetPlayerInterior(RPCParameters* rpcParams)
 extern UI *pUI;
 void ScrShowTextDraw(RPCParameters* rpcParams)
 {
-    /*
-	unsigned char* Data = reinterpret_cast<unsigned char*>(rpcParams->input);
-	int iBitLength = rpcParams->numberOfBitsOfData;
+    // FIX (textdraw tidak pernah muncul, GTA-2.11): seluruh isi fungsi ini
+    // sebelumnya dikomentari, jadi RPC ShowTextDraw (134) dari server tidak
+    // pernah membuat CTextDraw di pool. Isi yang diaktifkan di bawah ini
+    // sama dengan handler yang jalan di client SA-MP Mobile lain (format
+    // 0.3.7: uint16 id + TEXT_DRAW_TRANSMIT 63 byte + uint16 panjang teks
+    // + teks), hanya ditambah clamp panjang teks ke buffer 1024 supaya
+    // tidak overflow kalau server mengirim teks lebih panjang.
+    unsigned char* Data = reinterpret_cast<unsigned char*>(rpcParams->input);
+    int iBitLength = rpcParams->numberOfBitsOfData;
 
-	Log("ScrShowTextDraw");
+    Log("ScrShowTextDraw");
 
-	CTextDrawPool* pTextDrawPool = pNetGame->GetTextDrawPool();
-	if (pTextDrawPool == nullptr) {
-		Log("no textdraw pool");
-		return;
-	}
+    CTextDrawPool* pTextDrawPool = pNetGame->GetTextDrawPool();
+    if (pTextDrawPool == nullptr) {
+        Log("no textdraw pool");
+        return;
+    }
 
-	uint16_t wTextDrawID;
-	TEXT_DRAW_TRANSMIT textDrawTransmit;
-	uint16_t wTextLength;
-	RakNet::BitStream bsData(Data, (iBitLength / 8) + 1, false);
-	bsData.Read(wTextDrawID);
-	bsData.Read((char*)& textDrawTransmit, sizeof(TEXT_DRAW_TRANSMIT));
-	bsData.Read(wTextLength);
+    uint16_t wTextDrawID;
+    TEXT_DRAW_TRANSMIT textDrawTransmit;
+    uint16_t wTextLength;
+    RakNet::BitStream bsData(Data, (iBitLength / 8) + 1, false);
+    bsData.Read(wTextDrawID);
+    bsData.Read((char*)& textDrawTransmit, sizeof(TEXT_DRAW_TRANSMIT));
+    bsData.Read(wTextLength);
 
-	char szText[1024 + 1];
+    if (wTextLength > 1024) wTextLength = 1024;
 
-	bsData.Read(szText, wTextLength);
-	szText[wTextLength] = 0;
+    char szText[1024 + 1];
 
-	pTextDrawPool->New(wTextDrawID, &textDrawTransmit, szText);
-     */
+    bsData.Read(szText, wTextLength);
+    szText[wTextLength] = 0;
+
+    pTextDrawPool->New(wTextDrawID, &textDrawTransmit, szText);
 }
 // 0.3.7
 void ScrHideTextDraw(RPCParameters* rpcParams)

@@ -1,0 +1,60 @@
+# Build GTA-2.11 debug APK and publish it as a GitHub Release.
+# Trigger: push to main, or manual (Actions -> Build GTA-2.11 debug APK
+# -> Run workflow).
+# Debug APK needs no signing secrets, so it can be used to test the
+# textdraw fix right away. Release APK still needs a signing keystore.
+name: Build GTA-2.11 debug APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag (created if missing)"
+        required: false
+        default: "gta-2.11-textdraw-fix"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK 26.2.11394342
+        run: |
+          sdkmanager "ndk;26.2.11394342"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.2.11394342" >> "$GITHUB_ENV"
+
+      - name: Build debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Publish release with debug APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK="app/build/outputs/apk/debug/GTA-2.11-debug.apk"
+          ls -lh "$APK"
+          TAG="${{ inputs.release_tag }}"
+          if [ -z "$TAG" ]; then TAG="gta-2.11-textdraw-fix"; fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber
+          else
+            gh release create "$TAG" "$APK" \
+              --title "GTA-2.11 textdraw fix" \
+              --notes "Debug APK for GTA-2.11 with textdraw support fixed: ScrShowTextDraw handler restored and CTextDrawPool::Draw() called from Render2dStuff. Debug build, no signing keystore needed."
+          fi

@@ -147,8 +147,22 @@ void Render2dStuff_hook()
         }
 
         CTextDrawPool* pTextDrawPool = pNetGame->GetTextDrawPool();
-        if (pTextDrawPool && pTextDrawPool->GetState() == false) {
-            pTextDrawPool->SnapshotProcess();
+        if (pTextDrawPool) {
+            if (pTextDrawPool->GetState() == false) {
+                pTextDrawPool->SnapshotProcess();
+            }
+            // FIX (textdraw tidak pernah muncul, GTA-2.11): Draw() tidak
+            // pernah dipanggil di mana pun di codebase ini, jadi textdraw
+            // yang sudah masuk pool tidak pernah digambar. Digambar di
+            // sini, di Render2dStuff setelah HUD game asli (Render2dStuff()
+            // di atas sudah menyiapkan state font/render 2D) dan sebelum
+            // pUI->render(), supaya textdraw ada di bawah UI ImGui tapi
+            // di atas dunia game — sama urutannya dengan client lain.
+            // Draw() sengaja TIDAK digabung ke gate GetState() di atas:
+            // saat textdraw selection aktif, textdraw selectable harus
+            // tetap kelihatan supaya bisa diklik. SnapshotProcess saja
+            // yang tetap digate, seperti sebelumnya.
+            pTextDrawPool->Draw();
         }
     }
 
