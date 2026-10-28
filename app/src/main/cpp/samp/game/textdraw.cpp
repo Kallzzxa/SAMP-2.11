@@ -226,6 +226,15 @@ void CTextDraw::DrawDefault()
 
 void CTextDraw::DrawTextured()
 {
+    // Guard: GetFreeTextDrawTextureSlot() returns -1 when all 200
+    // texture slots are used, and a style-4 textdraw still routes here
+    // with slot -1. Reading TextDrawTexture[-1] is out of bounds and
+    // used to crash the renderer with a garbage fault address. A
+    // textdraw with no valid texture slot simply has nothing to draw.
+    if (m_TextDrawData.iTextureSlot < 0 || m_TextDrawData.iTextureSlot >= 200) {
+        return;
+    }
+
     float scaleX = (float)(RsGlobal->maximumWidth) * (1.0f / 640.0f);
     float scaleY = (float)(RsGlobal->maximumHeight) * (1.0f / 448.0f);
 
