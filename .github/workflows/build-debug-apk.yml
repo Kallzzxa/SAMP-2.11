@@ -30,12 +30,18 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK 26.2.11394342
+      # FIX (run 40647859742 failed here): android-actions/setup-android@v3
+      # with no inputs failed on this repo, and the same bare step failed
+      # before on a similar repo while the preinstalled-SDK route worked.
+      # ubuntu-latest already ships an Android SDK, so install the exact
+      # packages this project needs with its own sdkmanager instead.
+      - name: Install Android SDK packages (preinstalled SDK)
         run: |
-          sdkmanager "ndk;26.2.11394342"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKMANAGER="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
+          echo "sdkmanager: $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;26.2.11394342"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/26.2.11394342" >> "$GITHUB_ENV"
 
       - name: Build debug APK
